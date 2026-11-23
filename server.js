@@ -1,43 +1,66 @@
 const express = require("express");
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 3000;
 
+// Настройки
+app.use(express.json({ limit: "10kb" }));
+
 // Демонстрационные ключи
-const keys = new Map([
-    ["MERCURY-GOLD-2026", true],
-    ["MERCURY-VIP-2026", true],
-    ["MERCURY-PREMIUM-2026", true]
+const keys = new Set([
+    "MERCURY-GOLD-2026",
+    "MERCURY-VIP-2026",
+    "MERCURY-PREMIUM-2026"
 ]);
 
+// Главная страница
 app.get("/", (req, res) => {
-    res.json({
+    res.status(200).json({
         name: "MERCURY API",
         status: "online",
-        version: "1.0.0"
+        version: "2.0.0"
     });
 });
 
+// Проверка ключа для собственного приложения
 app.post("/verify", (req, res) => {
-    const key = req.body?.key;
+    try {
+        const key = req.body?.key;
 
-    if (typeof key !== "string" || key.length > 60) {
-        return res.status(400).json({
+        if (typeof key !== "string" || key.length > 60) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid request"
+            });
+        }
+
+        const normalizedKey = key.trim().toUpperCase();
+        const valid = keys.has(normalizedKey);
+
+        return res.status(200).json({
+            success: valid,
+            message: valid ? "Access granted" : "Invalid key"
+        });
+
+    } catch (error) {
+        console.error("Verification error:", error);
+
+        return res.status(500).json({
             success: false,
-            message: "Invalid key"
+            message: "Internal server error"
         });
     }
+});
 
-    const valid = keys.has(key.trim().toUpperCase());
-
-    res.json({
-        success: valid,
-        message: valid ? "Access granted" : "Invalid key"
+// Неизвестные адреса
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "Not found"
     });
 });
 
-app.listen(PORT, () => {
-    console.log(Mercury API running on port ${PORT});
+// Запуск сервера
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(MERCURY API running on port ${PORT});
 });
